@@ -714,7 +714,23 @@ const EbookHub: React.FC = () => {
 
     fetchEbooks();
   }, []);
-
+    useEffect(() => {
+    if (ebooks.length === 0) return;
+    
+    const params = new URLSearchParams(window.location.search);
+    const ebookId = params.get('ebook');
+    
+    if (ebookId) {
+      const ebook = ebooks.find(e => e.id === ebookId);
+      if (ebook) {
+        setSelectedEbook(ebook);
+        setIsModalOpen(true);
+        disableBodyScroll();
+        
+        window.history.replaceState({}, '', '/ebookhub');
+      }
+    }
+  }, [ebooks]);
   console.log("Fetched Ebooks:", ebooks); // --- IGNORE ---
 
   const handleCardClick = useCallback((ebook: EbookData) => {

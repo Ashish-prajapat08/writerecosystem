@@ -29,9 +29,8 @@ export const ShareModal = ({
   const { toast } = useToast();
 //  const shareUrl = `${window.location.origin}/${type}/${articleId}`;
  const shareUrl = type === 'ebook' 
-  ? `${window.location.origin}/ebookhub` 
+  ? `${window.location.origin}/ebookhub?ebook=${articleId}` 
   : `${window.location.origin}/article/${articleId}`;
-
   useEffect(() => {
     // Properly check if navigator.share exists before calling it
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -51,7 +50,7 @@ export const ShareModal = ({
       
       await navigator.share({
         title: "Check out this article",
-        text: "I found this interesting article you might like",
+        text: "",
         url: shareUrl,
       });
       await trackShare("native");

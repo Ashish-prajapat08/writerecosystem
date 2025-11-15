@@ -663,7 +663,7 @@ const EbookCard: React.FC<EbookCardProps> = React.memo(
          {showShareModal && (
         <ShareModal
           articleId={ebook.id}
-          
+           type="ebook" 
           onClose={() => setShowShareModal(false)}
           trackShare={async (platform) => {
             console.log(`Shared ${ebook.title} on ${platform}`);

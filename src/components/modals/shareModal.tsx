@@ -17,15 +17,17 @@ type ShareModalProps = {
   onClose: () => void;
   trackShare: (platform: SharePlatform) => Promise<void>;
    title?: string; 
+   type?: 'article' | 'ebook';
 };
 
 export const ShareModal = ({
   articleId,
   onClose,
   trackShare,
+   type = 'article', 
 }: ShareModalProps) => {
   const { toast } = useToast();
-  const shareUrl = `${window.location.origin}/article/${articleId}`;
+ const shareUrl = `${window.location.origin}/${type}/${articleId}`;
 
   useEffect(() => {
     // Properly check if navigator.share exists before calling it

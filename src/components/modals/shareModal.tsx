@@ -12,10 +12,11 @@ import {
 } from "lucide-react";
 import { useEffect } from "react";
 
-type ShareModalProps = {
+type ShareModalProps = { 
   articleId: string;
   onClose: () => void;
   trackShare: (platform: SharePlatform) => Promise<void>;
+   title?: string; 
 };
 
 export const ShareModal = ({
@@ -128,6 +129,7 @@ export const ShareModal = ({
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex justify-between items-center mb-6">
+            
             <h3 className="text-xl font-bold">Share this article</h3>
             <Button variant="ghost" onClick={onClose} className="rounded-full">
               <X className="h-5 w-5" />

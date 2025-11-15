@@ -17,7 +17,7 @@ import UserProfilePage from "@/components/pages/UserProfilePage";
 import { FollowersPage } from "@/components/FollowersPage";
 import { FollowingPage } from "@/components/FollowingPage";
 import { MainLayout } from "@/components/pages/Feed/layout/MainLayout";
-import { PostJobForm } from "@/components/Jobs/PostJobForm";
+import { PostJobForm } from "@/components/Jobs/PostJobForm"; 
 import ApplicantsPage from "@/components/Jobs/ApplicantsPage";
 import CompetitionsPage from "@/components/Competitions/CompetitionPage";
 import EbookHub from "@/components/Ebooks/EbooksHub";
@@ -99,14 +99,19 @@ export default function AppRoutes() {
         <Route path="profile/:username" element={<UserProfilePage />} />
         <Route path="profile/:username/followers" element={<FollowersPage />} />
         <Route path="profile/:username/following" element={<FollowingPage />} />
-        // In your router configuration
-        <Route path="/competitions" element={<CompetitionsPage />} />
+  {/* In your router configuration */}
+  <Route path="/competitions" element={<CompetitionsPage />} />
 
-        //Ebooks routes
-        <Route path="/ebookhub" element={<EbookHub />} />
-        <Route path="/publish-ebook"  element={<PublishEbook/>} />
-        <Route path="/payment-failed" element={<PaymentFailed />} />
+  {/* Ebooks routes */}
+  <Route path="/ebookhub" element={<EbookHub />} />
+  <Route path="/publish-ebook" element={<PublishEbook />} />
+  <Route path="/payment-failed" element={<PaymentFailed />} />
       </Route>
     </Routes>
   );
 }
+
+
+
+
+

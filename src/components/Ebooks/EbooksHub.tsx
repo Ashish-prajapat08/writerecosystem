@@ -12,12 +12,14 @@ import {
   CheckCircle,
   ArrowLeft,
   CreditCard,
+    Share2,  
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import useDocumentTitle from "@/hooks/useDocumentTitle";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion"; // Update with your actual auth context path
 import { useAuth } from "@/context/AuthContext";
+import { ShareModal } from "../modals/shareModal";
 
 // Helper functions for body scroll management
 const disableBodyScroll = () => {
@@ -526,7 +528,18 @@ interface EbookCardProps {
 
 const EbookCard: React.FC<EbookCardProps> = React.memo(
   ({ ebook, onCardClick }) => {
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
+    useEffect(() => {
+      const handleClickOutside = () => {
+        if (showMenu) setShowMenu(false);
+      };
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }, [showMenu]);
+      
     const handleCardClick = useCallback(
+
       (e: React.MouseEvent) => {
         e.stopPropagation();
         // Open details view
@@ -536,6 +549,7 @@ const EbookCard: React.FC<EbookCardProps> = React.memo(
     );
 
     return (
+    <> 
       <div
         className="group relative cursor-pointer"
         onClick={handleCardClick}
@@ -545,12 +559,54 @@ const EbookCard: React.FC<EbookCardProps> = React.memo(
         aria-label={`View details for ${ebook.title}`}
       >
         <div className="relative overflow-hidden rounded-xl bg-slate-900/40 backdrop-blur-md border border-slate-800/60 p-3 sm:p-4 transition-all duration-300 hover:bg-slate-900/60 hover:border-purple-500/40 hover:shadow-xl hover:shadow-purple-500/10 hover:-translate-y-1">
-          <div className="flex justify-end mb-2">
+          {/* <div className="flex justify-end mb-2">
             <div className="px-2 py-0.5 bg-gradient-to-r from-purple-600/15 to-blue-600/15 rounded-md text-xs font-medium text-purple-300 border border-purple-500/20">
               {ebook.genre}
             </div>
-          </div>
+          </div> */}
 
+          <div className="flex justify-center items-center mb-2 relative">
+            <div className="px-2 py-0.5 bg-gradient-to-r from-purple-600/15 to-blue-600/15 rounded-md text-xs font-medium text-purple-300 border border-purple-500/20">
+              {ebook.genre}
+            </div>
+            
+            {/* 3 Dots Menu */}
+                <div className="absolute right-0 top-0">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowMenu(!showMenu);
+                }}
+                className="p-1 hover:bg-slate-800/60 rounded-full transition-colors"
+              >
+                <svg className="w-4 h-4 text-slate-400 hover:text-white" fill="currentColor" viewBox="0 0 16 16">
+                  <circle cx="8" cy="2" r="1.5"/>
+                  <circle cx="8" cy="8" r="1.5"/>
+                  <circle cx="8" cy="14" r="1.5"/>
+                </svg>
+              </button>
+              
+              {/* Dropdown Menu */}
+              {showMenu && (
+          <div 
+                  className="absolute right-0 top-9 z-50 w-24 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden"
+                  onClick={(e) => e.stopPropagation()}
+                > 
+                   <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowMenu(false);
+                      setShowShareModal(true);
+                    }}
+                    className="w-full px-5 py-1.5 text-left text-xs text-slate-300 hover:bg-slate-700 hover:text-white transition-colors flex items-center space-x-1"
+                  >
+                    <Share2 className="w-3.5 h-3.5" />
+                    <span>Share</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
           <div className="relative mb-3 mx-auto w-16 h-24 sm:w-20 sm:h-28 rounded-md overflow-hidden shadow-md group-hover:shadow-lg transition-shadow duration-300">
             <img
               src={ebook.cover_url}
@@ -604,8 +660,20 @@ const EbookCard: React.FC<EbookCardProps> = React.memo(
           </div>
         </div>
       </div>
-    );
-  }
+         {showShareModal && (
+        <ShareModal
+          articleId={ebook.id}
+          
+          onClose={() => setShowShareModal(false)}
+          trackShare={async (platform) => {
+            console.log(`Shared ${ebook.title} on ${platform}`);
+          }}
+                  />
+      )}
+
+    </>
+  );
+}
 );
 
 const EbookHub: React.FC = () => {

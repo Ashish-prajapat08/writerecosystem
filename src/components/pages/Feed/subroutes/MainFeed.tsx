@@ -158,7 +158,7 @@ export function MainFeed() {
       // No saved position or user just logged in - scroll to top
       window.scrollTo(0, 0);
       setIsScrollRestored(true);
-    }
+    } 
 
     return () => {
       // Cleanup if needed

@@ -282,7 +282,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       return true;
     } catch (error: any) {
-      toast({
+      toast({ 
         title: 'Login failed',
         description: error.message,
         variant: 'destructive',

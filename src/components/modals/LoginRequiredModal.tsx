@@ -18,5 +18,5 @@ export const LoginRequiredModal = ({ onClose }: { onClose: () => void }) => (
         Okay
       </button>
     </motion.div>
-  </div>
-);
+  </div> 
+); 

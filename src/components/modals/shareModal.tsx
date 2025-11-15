@@ -27,7 +27,10 @@ export const ShareModal = ({
    type = 'article', 
 }: ShareModalProps) => {
   const { toast } = useToast();
- const shareUrl = `${window.location.origin}/${type}/${articleId}`;
+//  const shareUrl = `${window.location.origin}/${type}/${articleId}`;
+ const shareUrl = type === 'ebook' 
+  ? `${window.location.origin}/ebookhub` 
+  : `${window.location.origin}/article/${articleId}`;
 
   useEffect(() => {
     // Properly check if navigator.share exists before calling it

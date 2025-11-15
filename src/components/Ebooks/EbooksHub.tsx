@@ -668,7 +668,7 @@ const EbookCard: React.FC<EbookCardProps> = React.memo(
           trackShare={async (platform) => {
             console.log(`Shared ${ebook.title} on ${platform}`);
           }}
-                  />
+            />
       )}
 
     </>

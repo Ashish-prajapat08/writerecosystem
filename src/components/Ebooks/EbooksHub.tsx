@@ -565,13 +565,19 @@ const EbookCard: React.FC<EbookCardProps> = React.memo(
             </div>
           </div> */}
 
-          <div className="flex justify-center items-center mb-2 relative">
-            <div className="px-2 py-0.5 bg-gradient-to-r from-purple-600/15 to-blue-600/15 rounded-md text-xs font-medium text-purple-300 border border-purple-500/20">
-              {ebook.genre}
+        <div className="flex justify-between items-start mb-2">
+            {/* Empty space for balance */}
+            <div className="w-6"></div>
+            
+            {/* Genre badge - centered */}
+            <div className="flex-1 flex justify-center">
+              <div className="px-2 py-0.5 bg-gradient-to-r from-purple-600/15 to-blue-600/15 rounded-md text-xs font-medium text-purple-300 border border-purple-500/20">
+                {ebook.genre}
+              </div>
             </div>
             
-            {/* 3 Dots Menu */}
-                <div className="absolute right-0 top-0">
+            {/* 3 Dots Menu - right side */}
+            <div className="relative flex-shrink-0">
               <button
                 onClick={(e) => {
                   e.stopPropagation();

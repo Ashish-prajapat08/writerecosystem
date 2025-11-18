@@ -200,7 +200,7 @@ export function PrivacyPolicy() {
                   Law enforcement or government agencies (only when required by
                   law)
                 </li>
-              </ul>
+              </ul> 
             </div>
 
             {/* Section 7 */}

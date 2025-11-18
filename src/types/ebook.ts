@@ -14,7 +14,7 @@ export interface Ebook {
   read_time: string;
   chapters: string[];
   publish_date: string;
-  language: string;
+  language: string; 
   featured?: boolean;
 }
 

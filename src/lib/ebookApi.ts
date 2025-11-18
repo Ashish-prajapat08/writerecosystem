@@ -35,7 +35,7 @@ export const uploadFileToSupabase = async (
 
     if (error) throw error;
 
-    const {
+    const { 
       data: { publicUrl },
     } = supabase.storage.from(bucket).getPublicUrl(data.path);
     return { url: publicUrl, error: null };
@@ -94,7 +94,7 @@ export const submitEbook = async (
     email: string;
     contact: string;
     socialMedia?: string;
-    ebookTitle: string;
+    ebookTitle: string; 
     ebookDescription?: string;
     upiId?: string;
     genre: string;

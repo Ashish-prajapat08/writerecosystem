@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import useDocumentTitle from "@/hooks/useDocumentTitle";
 import { motion, AnimatePresence } from "framer-motion";
-import { submitEbook } from "@/lib/ebookApi";
+import { submitEbook } from "@/lib/ebookApi"; 
 import { useNavigate } from "react-router-dom";
 
 const PublishEbook: React.FC = () => {

@@ -12,14 +12,15 @@ import {
   CheckCircle,
   ArrowLeft,
   CreditCard,
-    Share2,  
+  Share2,  
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import useDocumentTitle from "@/hooks/useDocumentTitle";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion"; // Update with your actual auth context path
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { ShareModal } from "../modals/shareModal";
+import { submitPurchaseToAirtable } from "@/lib/ebookPurchaseApi";
 
 // Helper functions for body scroll management
 const disableBodyScroll = () => {
@@ -72,43 +73,6 @@ const loadRazorpayScript = () => {
   });
 };
 
-// Trigger Make.com webhook after successful payment
-const triggerMakeWebhook = async (
-  paymentData: any,
-  ebook: EbookData,
-  userEmail: string,
-  userName: string
-) => {
-  try {
-    const response = await fetch("https://hook.eu2.make.com/4ssk5i5ndplshh9vrh6anea34krhpfpl", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        razorpay_payment_id: paymentData.razorpay_payment_id,
-        razorpay_order_id: paymentData.razorpay_order_id,
-        razorpay_signature: paymentData.razorpay_signature,
-        ebook_id: ebook.id,
-        ebook_title: ebook.title,
-        ebook_author: ebook.author,
-        ebook_author_email: ebook.author_email,
-        customer_email: userEmail,
-        customer_name: userName,
-        purchase_date: new Date().toISOString(),
-        price: ebook.price,
-        download_link: ebook.download_url,
-      }),
-    });
-
-    if (response.ok) {
-      console.log("Webhook triggered successfully");
-    }
-  } catch (error) {
-    console.error("Failed to trigger webhook:", error);
-  }
-};
-
 interface NormalizedUser {
   id: string;
   email: string;
@@ -128,16 +92,13 @@ export function normalizeUser(user: any): NormalizedUser {
 
   let name = "";
   if (provider === "google") {
-    // Prefer full_name, then name, fallback to email
     name =
       user.user_metadata?.full_name ||
       user.user_metadata?.name ||
       email.split("@")[0];
   } else if (provider === "email") {
-    // For email logins, no name is stored
     name = email.split("@")[0];
   } else {
-    // fallback for other providers
     name = user.user_metadata?.name || email.split("@")[0];
   }
 
@@ -155,7 +116,6 @@ export function normalizeUser(user: any): NormalizedUser {
   };
 }
 
-
 const EbookModal: React.FC<EbookModalProps> = React.memo(
   ({ ebook, isOpen, onClose }) => {
     const [isProcessing, setIsProcessing] = useState(false);
@@ -167,6 +127,7 @@ const EbookModal: React.FC<EbookModalProps> = React.memo(
 
     // Auto-populate user data if authenticated
     const { name: userName, email: userEmail } = normalizeUser(user);
+
     const handleRazorpayPayment = async () => {
       // Check if user is authenticated
       if (!user) {
@@ -175,6 +136,17 @@ const EbookModal: React.FC<EbookModalProps> = React.memo(
       }
 
       setIsProcessing(true);
+
+      console.log("=== EBOOK PURCHASE DEBUG ===");
+      console.log("Ebook ID:", ebook.id);
+      console.log("Ebook Title:", ebook.title);
+      console.log("Ebook Author:", ebook.author);
+      console.log("Author Email:", ebook.author_email);
+      console.log("Download URL:", ebook.download_url);
+      console.log("Price:", ebook.price);
+      console.log("Customer Name:", userName);
+      console.log("Customer Email:", userEmail);
+      console.log("===========================");
 
       const isLoaded = await loadRazorpayScript();
       if (!isLoaded) {
@@ -189,20 +161,45 @@ const EbookModal: React.FC<EbookModalProps> = React.memo(
         currency: "INR",
         name: "Writers Ecosystem",
         description: `Purchase of ${ebook.title}`,
-        handler: async function (response: any) {
-          // Payment successful
-          setIsProcessing(false);
-          setIsSubmitted(true);
+       handler: async function (response: any) {
+  try {
+    console.log("💳 Payment Successful!");
+    console.log("Payment ID:", response.razorpay_payment_id);
 
-          // Trigger Make.com webhook
-          await triggerMakeWebhook(response, ebook, userEmail, userName);
+    // Save to Airtable with contact fields (will be empty)
+    await submitPurchaseToAirtable({
+      fullname: userName,
+      email: userEmail,
+      contactNumber: '', // Empty - will show blank in Airtable
+      whatsappNumber: '', // Empty - will show blank in Airtable
+      ebookTitle: ebook.title,
+      ebookAuthor: ebook.author,
+      ebookAuthorEmail: ebook.author_email,
+      price: `₹${ebook.price}`,
+      razorpay_payment_id: response.razorpay_payment_id,
+    });
 
-          // Close modal after 3 seconds
-          setTimeout(() => {
-            setIsSubmitted(false);
-            onClose();
-          }, 3000);
-        },
+    console.log("✅ Saved to Airtable with all fields!");
+    
+    setIsProcessing(false);
+    setIsSubmitted(true);
+
+    setTimeout(() => {
+      setIsSubmitted(false);
+      onClose();
+    }, 3000);
+
+  } catch (error) {
+    console.error("❌ Error:", error);
+    setIsProcessing(false);
+    
+    alert(
+      "Payment successful! ✅\n\n" +
+      "Order ID: " + response.razorpay_payment_id + "\n\n" +
+      "Contact support if you don't receive your ebook."
+    );
+  }
+},
         prefill: {
           name: userName,
           email: userEmail,
@@ -212,7 +209,6 @@ const EbookModal: React.FC<EbookModalProps> = React.memo(
         },
         modal: {
           ondismiss: function () {
-            // User closed the modal
             setIsProcessing(false);
             navigate("/payment-failed?reason=cancelled");
           },
@@ -223,7 +219,6 @@ const EbookModal: React.FC<EbookModalProps> = React.memo(
         const rzp = new (window as any).Razorpay(options);
 
         rzp.on("payment.failed", function (response: any) {
-          // Payment failed
           setIsProcessing(false);
           navigate(
             `/payment-failed?reason=failed&error=${response.error.description}`
@@ -388,7 +383,7 @@ const EbookModal: React.FC<EbookModalProps> = React.memo(
                     </h3>
                     <div className="space-y-2">
                       {ebook.chapters.map((chapter, index) => (
-                        <div
+                        <div 
                           key={index}
                           className="flex items-center space-x-3 p-2 sm:p-3 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:bg-slate-800/60 transition-colors duration-200"
                         >
@@ -437,7 +432,7 @@ const EbookModal: React.FC<EbookModalProps> = React.memo(
                 </h3>
                 <p className="text-slate-400 mb-6">
                   Thank you for your purchase. Your ebook will be delivered to
-                  your email shortly.
+                  your email shortly after approval.
                 </p>
                 <button
                   onClick={() => {
@@ -502,7 +497,7 @@ const EbookModal: React.FC<EbookModalProps> = React.memo(
           )}
         </AnimatePresence>
 
-        {/* Loading  */}
+        {/* Loading */}
         <AnimatePresence>
           {isProcessing && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
@@ -530,6 +525,7 @@ const EbookCard: React.FC<EbookCardProps> = React.memo(
   ({ ebook, onCardClick }) => {
     const [showShareModal, setShowShareModal] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
+    
     useEffect(() => {
       const handleClickOutside = () => {
         if (showMenu) setShowMenu(false);
@@ -539,10 +535,8 @@ const EbookCard: React.FC<EbookCardProps> = React.memo(
     }, [showMenu]);
       
     const handleCardClick = useCallback(
-
       (e: React.MouseEvent) => {
         e.stopPropagation();
-        // Open details view
         onCardClick(false);
       },
       [onCardClick]
@@ -559,24 +553,15 @@ const EbookCard: React.FC<EbookCardProps> = React.memo(
         aria-label={`View details for ${ebook.title}`}
       >
         <div className="relative overflow-hidden rounded-xl bg-slate-900/40 backdrop-blur-md border border-slate-800/60 p-3 sm:p-4 transition-all duration-300 hover:bg-slate-900/60 hover:border-purple-500/40 hover:shadow-xl hover:shadow-purple-500/10 hover:-translate-y-1">
-          {/* <div className="flex justify-end mb-2">
-            <div className="px-2 py-0.5 bg-gradient-to-r from-purple-600/15 to-blue-600/15 rounded-md text-xs font-medium text-purple-300 border border-purple-500/20">
-              {ebook.genre}
-            </div>
-          </div> */}
-
-        <div className="flex justify-between items-start mb-2">
-            {/* Empty space for balance */}
+          <div className="flex justify-between items-start mb-2">
             <div className="w-6"></div>
             
-            {/* Genre badge - centered */}
             <div className="flex-1 flex justify-center">
               <div className="px-2 py-0.5 bg-gradient-to-r from-purple-600/15 to-blue-600/15 rounded-md text-xs font-medium text-purple-300 border border-purple-500/20">
                 {ebook.genre}
               </div>
             </div>
             
-            {/* 3 Dots Menu - right side */}
             <div className="relative flex-shrink-0">
               <button
                 onClick={(e) => {
@@ -592,13 +577,12 @@ const EbookCard: React.FC<EbookCardProps> = React.memo(
                 </svg>
               </button>
               
-              {/* Dropdown Menu */}
               {showMenu && (
-          <div 
+                <div 
                   className="absolute right-0 top-9 z-50 w-24 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden"
                   onClick={(e) => e.stopPropagation()}
                 > 
-                   <button
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setShowMenu(false);
@@ -613,6 +597,7 @@ const EbookCard: React.FC<EbookCardProps> = React.memo(
               )}
             </div>
           </div>
+
           <div className="relative mb-3 mx-auto w-16 h-24 sm:w-20 sm:h-28 rounded-md overflow-hidden shadow-md group-hover:shadow-lg transition-shadow duration-300">
             <img
               src={ebook.cover_url}
@@ -666,20 +651,20 @@ const EbookCard: React.FC<EbookCardProps> = React.memo(
           </div>
         </div>
       </div>
-         {showShareModal && (
+      
+      {showShareModal && (
         <ShareModal
           articleId={ebook.id}
-           type="ebook" 
+          type="ebook" 
           onClose={() => setShowShareModal(false)}
           trackShare={async (platform) => {
             console.log(`Shared ${ebook.title} on ${platform}`);
           }}
-            />
+        />
       )}
-
     </>
-  );
-}
+    );
+  }
 );
 
 const EbookHub: React.FC = () => {
@@ -720,7 +705,8 @@ const EbookHub: React.FC = () => {
 
     fetchEbooks();
   }, []);
-    useEffect(() => {
+
+  useEffect(() => {
     if (ebooks.length === 0) return;
     
     const params = new URLSearchParams(window.location.search);
@@ -737,7 +723,6 @@ const EbookHub: React.FC = () => {
       }
     }
   }, [ebooks]);
-  console.log("Fetched Ebooks:", ebooks); // --- IGNORE ---
 
   const handleCardClick = useCallback((ebook: EbookData) => {
     setSelectedEbook(ebook);
@@ -755,7 +740,7 @@ const EbookHub: React.FC = () => {
 
   const handlePublishClick = useCallback(() => {
     navigate("/publish-ebook");
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     return () => {
@@ -810,7 +795,6 @@ const EbookHub: React.FC = () => {
           </button>
           <div className="relative overflow-hidden rounded-2xl bg-slate-900/70 backdrop-blur-xl border border-slate-800/50 p-8 sm:p-10 lg:p-12 shadow-2xl">
             {/* Background Decorative Elements */}
-
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
               <div className="absolute -top-10 -left-10 w-32 h-32 bg-purple-500/20 rounded-full blur-2xl"></div>
               <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-blue-500/20 rounded-full blur-2xl"></div>
@@ -848,6 +832,7 @@ const EbookHub: React.FC = () => {
             </div>
           </div>
         </div>
+
         {/* Header */}
         <div className="backdrop-blur-xl">
           <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">

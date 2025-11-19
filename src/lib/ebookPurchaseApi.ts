@@ -22,7 +22,7 @@ export const submitPurchaseToAirtable = async (purchaseData: PurchaseData) => {
     console.log('📤 Sending to Airtable:', purchaseData);
 
     const response = await fetch(
-      `https://api.airtable.com/v0/appzG5tuIn0406HDt/tblA4Gk861VQGDfCr`,
+      `https://api.airtable.com/v0/appzG5tuIn0406HDt/tblWE7aCj5cJOkbFw`,
       {
         method: 'POST',
         headers: {
@@ -31,7 +31,7 @@ export const submitPurchaseToAirtable = async (purchaseData: PurchaseData) => {
         },
         body: JSON.stringify({
           fields: {
-            'First Name': purchaseData.fullname,
+            'Full Name': purchaseData.fullname,
             'Email': purchaseData.email,
             'Contact Number': purchaseData.contactNumber || '', // Empty if not provided
             // 'WhatsApp Number': purchaseData.whatsappNumber || '', // Empty if not provided
@@ -39,7 +39,7 @@ export const submitPurchaseToAirtable = async (purchaseData: PurchaseData) => {
             'Ebook Author': purchaseData.ebookAuthor,
             'Author Email': purchaseData.ebookAuthorEmail,
             'Price': purchaseData.price,
-            'Payment Screenshot URL': purchaseData.razorpay_payment_id || '',
+            // 'Payment Screenshot URL': purchaseData.razorpay_payment_id || '',
             'Status': 'Pending',
             'Purchase Date': new Date().toISOString(),
           }

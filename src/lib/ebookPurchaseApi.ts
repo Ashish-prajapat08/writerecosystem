@@ -1,10 +1,10 @@
-import { supabase } from './supabaseClient';
+// import { supabase } from './supabaseClient';
 
 interface PurchaseData {
   fullname: string;
   email: string;
   contactNumber?: string;
-  whatsappNumber?: string;
+  // whatsappNumber?: string;
   ebookTitle: string;
   ebookAuthor: string;
   ebookAuthorEmail: string;
@@ -34,7 +34,7 @@ export const submitPurchaseToAirtable = async (purchaseData: PurchaseData) => {
             'First Name': purchaseData.fullname,
             'Email': purchaseData.email,
             'Contact Number': purchaseData.contactNumber || '', // Empty if not provided
-            'WhatsApp Number': purchaseData.whatsappNumber || '', // Empty if not provided
+            // 'WhatsApp Number': purchaseData.whatsappNumber || '', // Empty if not provided
             'Ebook Title': purchaseData.ebookTitle,
             'Ebook Author': purchaseData.ebookAuthor,
             'Author Email': purchaseData.ebookAuthorEmail,

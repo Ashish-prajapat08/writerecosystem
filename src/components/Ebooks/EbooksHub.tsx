@@ -115,38 +115,44 @@ export function normalizeUser(user: any): NormalizedUser {
     provider,
   };
 }
+// ONLY THE EBOOK MODAL COMPONENT - Replace lines 119-500 in your file
 
 const EbookModal: React.FC<EbookModalProps> = React.memo(
   ({ ebook, isOpen, onClose }) => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+    const [contactNumber, setContactNumber] = useState("");
+    // const [whatsappNumber, setWhatsappNumber] = useState("");
     
     const { user } = useAuth();
     const navigate = useNavigate();
 
-    // Auto-populate user data if authenticated
     const { name: userName, email: userEmail } = normalizeUser(user);
 
+    // Validate contact number is exactly 10 digits
+    const isValidContactNumber = (number: string) => {
+      return /^\d{10}$/.test(number);
+    };
+
     const handleRazorpayPayment = async () => {
-      // Check if user is authenticated
       if (!user) {
         setShowLoginPrompt(true);
         return;
       }
 
-      setIsProcessing(true);
+      // Validate contact number
+      if (!contactNumber.trim()) {
+        alert("Please enter your contact number");
+        return;
+      }
 
-      console.log("=== EBOOK PURCHASE DEBUG ===");
-      console.log("Ebook ID:", ebook.id);
-      console.log("Ebook Title:", ebook.title);
-      console.log("Ebook Author:", ebook.author);
-      console.log("Author Email:", ebook.author_email);
-      console.log("Download URL:", ebook.download_url);
-      console.log("Price:", ebook.price);
-      console.log("Customer Name:", userName);
-      console.log("Customer Email:", userEmail);
-      console.log("===========================");
+      if (!isValidContactNumber(contactNumber)) {
+        alert("Please enter a valid 10-digit contact number");
+        return;
+      }
+
+      setIsProcessing(true);
 
       const isLoaded = await loadRazorpayScript();
       if (!isLoaded) {
@@ -161,48 +167,50 @@ const EbookModal: React.FC<EbookModalProps> = React.memo(
         currency: "INR",
         name: "Writers Ecosystem",
         description: `Purchase of ${ebook.title}`,
-       handler: async function (response: any) {
-  try {
-    console.log("💳 Payment Successful!");
-    console.log("Payment ID:", response.razorpay_payment_id);
+        handler: async function (response: any) {
+          try {
+            console.log("💳 Payment Successful!");
+            console.log("Payment ID:", response.razorpay_payment_id);
 
-    // Save to Airtable with contact fields (will be empty)
-    await submitPurchaseToAirtable({
-      fullname: userName,
-      email: userEmail,
-      contactNumber: '', // Empty - will show blank in Airtable
-      whatsappNumber: '', // Empty - will show blank in Airtable
-      ebookTitle: ebook.title,
-      ebookAuthor: ebook.author,
-      ebookAuthorEmail: ebook.author_email,
-      price: `₹${ebook.price}`,
-      razorpay_payment_id: response.razorpay_payment_id,
-    });
+            await submitPurchaseToAirtable({
+              fullname: userName,
+              email: userEmail,
+              contactNumber: contactNumber,
+              // whatsappNumber: whatsappNumber || "",
+              ebookTitle: ebook.title,
+              ebookAuthor: ebook.author,
+              ebookAuthorEmail: ebook.author_email,
+              price: `₹${ebook.price}`,
+              razorpay_payment_id: response.razorpay_payment_id,
+            });
 
-    console.log("✅ Saved to Airtable with all fields!");
-    
-    setIsProcessing(false);
-    setIsSubmitted(true);
+            console.log("✅ Saved to Airtable!");
+            
+            setIsProcessing(false);
+            setIsSubmitted(true);
 
-    setTimeout(() => {
-      setIsSubmitted(false);
-      onClose();
-    }, 3000);
+            setTimeout(() => {
+              setIsSubmitted(false);
+              onClose();
+              setContactNumber("");
+              // setWhatsappNumber("");
+            }, 3000);
 
-  } catch (error) {
-    console.error("❌ Error:", error);
-    setIsProcessing(false);
-    
-    alert(
-      "Payment successful! ✅\n\n" +
-      "Order ID: " + response.razorpay_payment_id + "\n\n" +
-      "Contact support if you don't receive your ebook."
-    );
-  }
-},
+          } catch (error) {
+            console.error("❌ Error:", error);
+            setIsProcessing(false);
+            
+            alert(
+              "Payment successful! ✅\n\n" +
+              "Order ID: " + response.razorpay_payment_id + "\n\n" +
+              "Contact support if you don't receive your ebook."
+            );
+          }
+        },
         prefill: {
           name: userName,
           email: userEmail,
+          contact: contactNumber,
         },
         theme: {
           color: "#6366F1",
@@ -238,7 +246,6 @@ const EbookModal: React.FC<EbookModalProps> = React.memo(
       navigate("/login");
     };
 
-    // Close modal on Escape key press
     useEffect(() => {
       if (!isOpen) return;
 
@@ -254,18 +261,14 @@ const EbookModal: React.FC<EbookModalProps> = React.memo(
 
     return (
       <>
-        {/* Show ebook details modal */}
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 pt-4 pb-16 sm:pt-8 sm:pb-20 overscroll-none">
-          {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/90 backdrop-blur-sm"
             onClick={onClose}
             aria-hidden="true"
           />
 
-          {/* Modal */}
           <div className="relative w-full max-w-4xl max-h-[calc(70vh-2rem)] sm:max-h-[calc(83vh-4rem)] overflow-y-auto bg-slate-900/95 backdrop-blur-xl border border-slate-800/60 rounded-xl sm:rounded-2xl shadow-2xl">
-            {/* Close Button */}
             <div className="sticky top-0 z-20 flex justify-end p-3 sm:p-4 bg-slate-900/95 backdrop-blur-xl border-b border-slate-800/30 rounded-t-xl sm:rounded-t-2xl">
               <button
                 onClick={onClose}
@@ -313,14 +316,62 @@ const EbookModal: React.FC<EbookModalProps> = React.memo(
                     </div>
 
                     <div className="text-center mb-4">
-                      <div className="text-2xl sm:text-3xl font-bold text-purple-400 mb-3">
+                      <div className="text-2xl sm:text-3xl font-bold text-purple-400 mb-4">
                         ₹{ebook.price.toFixed(2)}
                       </div>
 
+                      {/* ✅ CONTACT FORM - MOVED ABOVE BUY BUTTON */}
+                      <div className="bg-slate-800/60 border border-slate-700/50 rounded-lg p-4 sm:p-5 mb-4 space-y-3">
+                        <h3 className="text-sm font-semibold text-purple-300 mb-3">
+                          Contact
+                        </h3>
+                        
+                        <div>
+                          <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                            Contact Number <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="tel"
+                            value={contactNumber}
+                            onChange={(e) => {
+                              // Only allow digits, max 10
+                              const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                              setContactNumber(value);
+                            }}
+                            placeholder="Enter 10-digit number"
+                            maxLength={10}
+                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                          />
+                          {contactNumber && !isValidContactNumber(contactNumber) && (
+                            <p className="text-xs text-red-400 mt-1">
+                              Must be exactly 10 digits
+                            </p>
+                          )}
+                        </div>
+
+                        {/* <div>
+                          <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                            WhatsApp Number (Optional)
+                          </label>
+                          <input
+                            type="tel"
+                            value={whatsappNumber}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                              setWhatsappNumber(value);
+                            }}
+                            placeholder="Enter 10-digit number"
+                            maxLength={10}
+                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                          />
+                        </div> */}
+                      </div>
+
+                      {/* ✅ BUY BUTTON - NOW BELOW FORM */}
                       <button
                         onClick={handleRazorpayPayment}
-                        disabled={isProcessing}
-                        className="w-full group/btn relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-3 font-medium text-white transition-all duration-300 hover:from-purple-500 hover:to-blue-500 hover:shadow-lg hover:shadow-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={isProcessing || !isValidContactNumber(contactNumber)}
+                        className="w-full group/btn relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-3 font-medium text-white transition-all duration-300 hover:from-purple-500 hover:to-blue-500 hover:shadow-lg hover:shadow-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-slate-600 disabled:to-slate-600"
                       >
                         <div className="relative flex items-center justify-center space-x-2">
                           {isProcessing ? (
@@ -331,11 +382,14 @@ const EbookModal: React.FC<EbookModalProps> = React.memo(
                           <span className="text-sm sm:text-base">
                             {isProcessing ? "Processing..." : "Buy Now"}
                           </span>
-                          <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-200" />
+                          {!isProcessing && (
+                            <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-200" />
+                          )}
                         </div>
                       </button>
                     </div>
 
+                    {/* Book Details */}
                     <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
                       <div className="flex items-center space-x-2 text-slate-400">
                         <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -356,7 +410,7 @@ const EbookModal: React.FC<EbookModalProps> = React.memo(
                   </div>
                 </div>
 
-                {/* Right Column */}
+                {/* Right Column - Keep as is */}
                 <div className="md:col-span-2 space-y-4 sm:space-y-6">
                   <div>
                     <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 leading-tight">
@@ -403,7 +457,7 @@ const EbookModal: React.FC<EbookModalProps> = React.memo(
           </div>
         </div>
 
-        {/* Success Popup */}
+        {/* Success, Login, Loading popups - Keep as is */}
         <AnimatePresence>
           {isSubmitted && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
@@ -418,11 +472,7 @@ const EbookModal: React.FC<EbookModalProps> = React.memo(
                   <motion.div
                     initial={{ scale: 0.8 }}
                     animate={{ scale: 1 }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 500,
-                      damping: 15,
-                    }}
+                    transition={{ type: "spring", stiffness: 500, damping: 15 }}
                   >
                     <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
                   </motion.div>
@@ -431,8 +481,7 @@ const EbookModal: React.FC<EbookModalProps> = React.memo(
                   Payment Successful!
                 </h3>
                 <p className="text-slate-400 mb-6">
-                  Thank you for your purchase. Your ebook will be delivered to
-                  your email shortly after approval.
+                  Your ebook will be delivered to your email shortly.
                 </p>
                 <button
                   onClick={() => {
@@ -448,7 +497,6 @@ const EbookModal: React.FC<EbookModalProps> = React.memo(
           )}
         </AnimatePresence>
 
-        {/* Login Prompt Popup */}
         <AnimatePresence>
           {showLoginPrompt && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
@@ -463,11 +511,7 @@ const EbookModal: React.FC<EbookModalProps> = React.memo(
                   <motion.div
                     initial={{ scale: 0.8 }}
                     animate={{ scale: 1 }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 500,
-                      damping: 15,
-                    }}
+                    transition={{ type: "spring", stiffness: 500, damping: 15 }}
                   >
                     <User className="w-16 h-16 text-purple-500 mx-auto" />
                   </motion.div>
@@ -497,7 +541,6 @@ const EbookModal: React.FC<EbookModalProps> = React.memo(
           )}
         </AnimatePresence>
 
-        {/* Loading */}
         <AnimatePresence>
           {isProcessing && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
@@ -514,6 +557,405 @@ const EbookModal: React.FC<EbookModalProps> = React.memo(
     );
   }
 );
+
+// const EbookModal: React.FC<EbookModalProps> = React.memo(
+//   ({ ebook, isOpen, onClose }) => {
+//     const [isProcessing, setIsProcessing] = useState(false);
+//     const [isSubmitted, setIsSubmitted] = useState(false);
+//     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+    
+//     const { user } = useAuth();
+//     const navigate = useNavigate();
+
+//     // Auto-populate user data if authenticated
+//     const { name: userName, email: userEmail } = normalizeUser(user);
+
+//     const handleRazorpayPayment = async () => {
+//       // Check if user is authenticated
+//       if (!user) {
+//         setShowLoginPrompt(true);
+//         return;
+//       }
+
+//       setIsProcessing(true);
+
+//       console.log("=== EBOOK PURCHASE DEBUG ===");
+//       console.log("Ebook ID:", ebook.id);
+//       console.log("Ebook Title:", ebook.title);
+//       console.log("Ebook Author:", ebook.author);
+//       console.log("Author Email:", ebook.author_email);
+//       console.log("Download URL:", ebook.download_url);
+//       console.log("Price:", ebook.price);
+//       console.log("Customer Name:", userName);
+//       console.log("Customer Email:", userEmail);
+//       console.log("===========================");
+
+//       const isLoaded = await loadRazorpayScript();
+//       if (!isLoaded) {
+//         alert("Razorpay SDK failed to load. Are you online?");
+//         setIsProcessing(false);
+//         return;
+//       }
+
+//       const options = {
+//         key: import.meta.env.VITE_APP_RAZORPAY_KEY_ID,
+//         amount: Math.round(ebook.price * 100),
+//         currency: "INR",
+//         name: "Writers Ecosystem",
+//         description: `Purchase of ${ebook.title}`,
+//        handler: async function (response: any) {
+//   try {
+//     console.log("💳 Payment Successful!");
+//     console.log("Payment ID:", response.razorpay_payment_id);
+
+//     // Save to Airtable with contact fields (will be empty)
+//     await submitPurchaseToAirtable({
+//       fullname: userName,
+//       email: userEmail,
+//       contactNumber: '', // Empty - will show blank in Airtable
+//       whatsappNumber: '', // Empty - will show blank in Airtable
+//       ebookTitle: ebook.title,
+//       ebookAuthor: ebook.author,
+//       ebookAuthorEmail: ebook.author_email,
+//       price: `₹${ebook.price}`,
+//       razorpay_payment_id: response.razorpay_payment_id,
+//     });
+
+//     console.log("✅ Saved to Airtable with all fields!");
+    
+//     setIsProcessing(false);
+//     setIsSubmitted(true);
+
+//     setTimeout(() => {
+//       setIsSubmitted(false);
+//       onClose();
+//     }, 3000);
+
+//   } catch (error) {
+//     console.error("❌ Error:", error);
+//     setIsProcessing(false);
+    
+//     alert(
+//       "Payment successful! ✅\n\n" +
+//       "Order ID: " + response.razorpay_payment_id + "\n\n" +
+//       "Contact support if you don't receive your ebook."
+//     );
+//   }
+// },
+//         prefill: {
+//           name: userName,
+//           email: userEmail,
+//         },
+//         theme: {
+//           color: "#6366F1",
+//         },
+//         modal: {
+//           ondismiss: function () {
+//             setIsProcessing(false);
+//             navigate("/payment-failed?reason=cancelled");
+//           },
+//         },
+//       };
+
+//       try {
+//         const rzp = new (window as any).Razorpay(options);
+
+//         rzp.on("payment.failed", function (response: any) {
+//           setIsProcessing(false);
+//           navigate(
+//             `/payment-failed?reason=failed&error=${response.error.description}`
+//           );
+//         });
+
+//         rzp.open();
+//       } catch (error) {
+//         console.error("Error initializing Razorpay:", error);
+//         setIsProcessing(false);
+//         alert("Failed to initialize payment. Please try again.");
+//       }
+//     };
+
+//     const handleLoginRedirect = () => {
+//       onClose();
+//       navigate("/login");
+//     };
+
+//     // Close modal on Escape key press
+//     useEffect(() => {
+//       if (!isOpen) return;
+
+//       const handleKeyDown = (e: KeyboardEvent) => {
+//         if (e.key === "Escape") onClose();
+//       };
+
+//       document.addEventListener("keydown", handleKeyDown);
+//       return () => document.removeEventListener("keydown", handleKeyDown);
+//     }, [isOpen, onClose]);
+
+//     if (!isOpen) return null;
+
+//     return (
+//       <>
+//         {/* Show ebook details modal */}
+//         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 pt-4 pb-16 sm:pt-8 sm:pb-20 overscroll-none">
+//           {/* Backdrop */}
+//           <div
+//             className="absolute inset-0 bg-black/90 backdrop-blur-sm"
+//             onClick={onClose}
+//             aria-hidden="true"
+//           />
+
+//           {/* Modal */}
+//           <div className="relative w-full max-w-4xl max-h-[calc(70vh-2rem)] sm:max-h-[calc(83vh-4rem)] overflow-y-auto bg-slate-900/95 backdrop-blur-xl border border-slate-800/60 rounded-xl sm:rounded-2xl shadow-2xl">
+//             {/* Close Button */}
+//             <div className="sticky top-0 z-20 flex justify-end p-3 sm:p-4 bg-slate-900/95 backdrop-blur-xl border-b border-slate-800/30 rounded-t-xl sm:rounded-t-2xl">
+//               <button
+//                 onClick={onClose}
+//                 className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-slate-700/80 transition-colors duration-200"
+//                 aria-label="Close modal"
+//               >
+//                 <X className="w-4 h-4 sm:w-5 sm:h-5 text-slate-300" />
+//               </button>
+//             </div>
+
+//             <div className="p-4 sm:p-6 md:p-8">
+//               <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
+//                 {/* Left Column */}
+//                 <div className="md:col-span-1">
+//                   <div className="space-y-4">
+//                     <div className="flex justify-center">
+//                       <div className="px-3 py-1 bg-gradient-to-r from-purple-600 to-blue-600/20 rounded-full text-sm font-medium text-purple-300 border border-purple-500/30">
+//                         {ebook.genre}
+//                       </div>
+//                     </div>
+
+//                     <div className="relative mb-4 mx-auto w-36 h-48 sm:w-48 sm:h-64 rounded-xl overflow-hidden shadow-2xl">
+//                       <img
+//                         src={ebook.cover_url}
+//                         alt={`Cover of ${ebook.title}`}
+//                         className="w-full h-full object-cover"
+//                         loading="lazy"
+//                       />
+//                     </div>
+
+//                     <div className="flex items-center justify-center space-x-1 mb-3">
+//                       {[...Array(5)].map((_, i) => (
+//                         <Star
+//                           key={i}
+//                           className={`w-4 h-4 sm:w-5 sm:h-5 ${
+//                             i < Math.floor(ebook.rating)
+//                               ? "text-yellow-400 fill-current"
+//                               : "text-slate-600"
+//                           }`}
+//                         />
+//                       ))}
+//                       <span className="text-slate-400 text-base sm:text-lg ml-2 font-medium">
+//                         {ebook.rating}
+//                       </span>
+//                     </div>
+
+//                     <div className="text-center mb-4">
+//                       <div className="text-2xl sm:text-3xl font-bold text-purple-400 mb-3">
+//                         ₹{ebook.price.toFixed(2)}
+//                       </div>
+
+//                       <button
+//                         onClick={handleRazorpayPayment}
+//                         disabled={isProcessing}
+//                         className="w-full group/btn relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-3 font-medium text-white transition-all duration-300 hover:from-purple-500 hover:to-blue-500 hover:shadow-lg hover:shadow-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+//                       >
+//                         <div className="relative flex items-center justify-center space-x-2">
+//                           {isProcessing ? (
+//                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+//                           ) : (
+//                             <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />
+//                           )}
+//                           <span className="text-sm sm:text-base">
+//                             {isProcessing ? "Processing..." : "Buy Now"}
+//                           </span>
+//                           <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-200" />
+//                         </div>
+//                       </button>
+//                     </div>
+
+//                     <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
+//                       <div className="flex items-center space-x-2 text-slate-400">
+//                         <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
+//                         <span>{ebook.pages} pages</span>
+//                       </div>
+//                       <div className="flex items-center space-x-2 text-slate-400">
+//                         <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
+//                         <span>{ebook.read_time}</span>
+//                       </div>
+//                       <div className="flex items-center space-x-2 text-slate-400">
+//                         <BookOpen className="w-3 h-3 sm:w-4 sm:h-4" />
+//                         <span>{ebook.language}</span>
+//                       </div>
+//                       <div className="text-slate-400">
+//                         <span>Published: {ebook.publish_date}</span>
+//                       </div>
+//                     </div>
+//                   </div>
+//                 </div>
+
+//                 {/* Right Column */}
+//                 <div className="md:col-span-2 space-y-4 sm:space-y-6">
+//                   <div>
+//                     <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 leading-tight">
+//                       {ebook.title}
+//                     </h2>
+//                     <div className="flex items-center space-x-2 text-slate-400 text-base sm:text-lg">
+//                       <User className="w-4 h-4 sm:w-5 sm:h-5" />
+//                       <span className="font-medium">by {ebook.author}</span>
+//                     </div>
+//                   </div>
+
+//                   <div>
+//                     <h3 className="text-lg sm:text-xl font-semibold text-purple-300 mb-2 sm:mb-3">
+//                       About This Book
+//                     </h3>
+//                     <p className="text-slate-300 leading-relaxed text-sm sm:text-base">
+//                       {ebook.description}
+//                     </p>
+//                   </div>
+
+//                   <div>
+//                     <h3 className="text-lg sm:text-xl font-semibold text-purple-300 mb-3 sm:mb-4">
+//                       Table of Contents
+//                     </h3>
+//                     <div className="space-y-2">
+//                       {ebook.chapters.map((chapter, index) => (
+//                         <div 
+//                           key={index}
+//                           className="flex items-center space-x-3 p-2 sm:p-3 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:bg-slate-800/60 transition-colors duration-200"
+//                         >
+//                           <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-r from-purple-600/20 to-blue-600/20 flex items-center justify-center text-purple-300 text-xs sm:text-sm font-medium">
+//                             {index + 1}
+//                           </div>
+//                           <span className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+//                             {chapter}
+//                           </span>
+//                         </div>
+//                       ))}
+//                     </div>
+//                   </div>
+//                 </div>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+
+//         {/* Success Popup */}
+//         <AnimatePresence>
+//           {isSubmitted && (
+//             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+//               <motion.div
+//                 initial={{ opacity: 0, scale: 0.9 }}
+//                 animate={{ opacity: 1, scale: 1 }}
+//                 exit={{ opacity: 0, scale: 0.9 }}
+//                 transition={{ duration: 0.3 }}
+//                 className="relative bg-slate-900 rounded-xl border border-slate-800 shadow-xl p-8 max-w-md text-center"
+//               >
+//                 <div className="mb-6">
+//                   <motion.div
+//                     initial={{ scale: 0.8 }}
+//                     animate={{ scale: 1 }}
+//                     transition={{
+//                       type: "spring",
+//                       stiffness: 500,
+//                       damping: 15,
+//                     }}
+//                   >
+//                     <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
+//                   </motion.div>
+//                 </div>
+//                 <h3 className="text-2xl font-bold text-white mb-2">
+//                   Payment Successful!
+//                 </h3>
+//                 <p className="text-slate-400 mb-6">
+//                   Thank you for your purchase. Your ebook will be delivered to
+//                   your email shortly after approval.
+//                 </p>
+//                 <button
+//                   onClick={() => {
+//                     setIsSubmitted(false);
+//                     onClose();
+//                   }}
+//                   className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-medium rounded-lg transition-all duration-300"
+//                 >
+//                   Close
+//                 </button>
+//               </motion.div>
+//             </div>
+//           )}
+//         </AnimatePresence>
+
+//         {/* Login Prompt Popup */}
+//         <AnimatePresence>
+//           {showLoginPrompt && (
+//             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+//               <motion.div
+//                 initial={{ opacity: 0, scale: 0.9 }}
+//                 animate={{ opacity: 1, scale: 1 }}
+//                 exit={{ opacity: 0, scale: 0.9 }}
+//                 transition={{ duration: 0.3 }}
+//                 className="relative bg-slate-900 rounded-xl border border-slate-800 shadow-xl p-8 max-w-md text-center"
+//               >
+//                 <div className="mb-6">
+//                   <motion.div
+//                     initial={{ scale: 0.8 }}
+//                     animate={{ scale: 1 }}
+//                     transition={{
+//                       type: "spring",
+//                       stiffness: 500,
+//                       damping: 15,
+//                     }}
+//                   >
+//                     <User className="w-16 h-16 text-purple-500 mx-auto" />
+//                   </motion.div>
+//                 </div>
+//                 <h3 className="text-2xl font-bold text-white mb-2">
+//                   Login Required
+//                 </h3>
+//                 <p className="text-slate-400 mb-6">
+//                   Please login to continue with your purchase.
+//                 </p>
+//                 <div className="flex gap-4 justify-center">
+//                   <button
+//                     onClick={() => setShowLoginPrompt(false)}
+//                     className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-all duration-300"
+//                   >
+//                     Cancel
+//                   </button>
+//                   <button
+//                     onClick={handleLoginRedirect}
+//                     className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-medium rounded-lg transition-all duration-300"
+//                   >
+//                     Login
+//                   </button>
+//                 </div>
+//               </motion.div>
+//             </div>
+//           )}
+//         </AnimatePresence>
+
+//         {/* Loading */}
+//         <AnimatePresence>
+//           {isProcessing && (
+//             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+//               <div className="flex flex-col items-center">
+//                 <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+//                 <p className="mt-4 text-white text-lg font-medium">
+//                   Processing your payment...
+//                 </p>
+//               </div>
+//             </div>
+//           )}
+//         </AnimatePresence>
+//       </>
+//     );
+//   }
+// );
 
 // Props for EbookCard component
 interface EbookCardProps {
